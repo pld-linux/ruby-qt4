@@ -1,0 +1,1599 @@
+diff -urNad libqt4-ruby-1.4.10~/ruby/qtruby/src/CMakeLists.txt libqt4-ruby-1.4.10/ruby/qtruby/src/CMakeLists.txt
+--- libqt4-ruby-1.4.10~/ruby/qtruby/src/CMakeLists.txt	2007-10-31 15:16:33.000000000 +0100
++++ libqt4-ruby-1.4.10/ruby/qtruby/src/CMakeLists.txt	2008-05-09 23:40:22.000000000 +0200
+@@ -24,7 +24,7 @@
+ add_library(qtruby4 MODULE ${qtruby_LIB_SRCS})
+ #add_library(qtruby4 SHARED ${qtruby_LIB_SRCS})
+ 
+-target_link_libraries(qtruby4 ${QT_QTCORE_LIBRARY} ${RUBY_LIBRARY} ${QT_QTNETWORK_LIBRARY} smokeqt)
++target_link_libraries(qtruby4 ${QT_QTCORE_LIBRARY} ${RUBY_LIBRARY} ${QT_QTNETWORK_LIBRARY} -lQtWebKit smokeqt)
+ 
+ # target_link_libraries(qtrubyinternal ${QT_QTCORE_LIBRARY} ${RUBY_LIBRARY} ${QT_QTNETWORK_LIBRARY})
+ 
+diff -urNad libqt4-ruby-1.4.10~/smoke/qt/CMakeLists.txt libqt4-ruby-1.4.10/smoke/qt/CMakeLists.txt
+--- libqt4-ruby-1.4.10~/smoke/qt/CMakeLists.txt	2008-05-01 10:05:58.000000000 +0200
++++ libqt4-ruby-1.4.10/smoke/qt/CMakeLists.txt	2008-05-09 23:39:21.000000000 +0200
+@@ -133,7 +133,7 @@
+                               ${QT_QTSVG_LIBRARY}
+                               ${QT_QTUITOOLS_LIBRARY}
+                               ${QT_QTXML_LIBRARY}
+-                              ${QT_QTWEBKIT_LIBRARY}
++			      -lQtWebKit
+                               ${_smokeqt_optional_libs} )
+ 
+ set_target_properties(smokeqt PROPERTIES VERSION 2.0.0 SOVERSION 2 )
+diff -urNad libqt4-ruby-1.4.10~/ruby/qtruby/src/Qt.cpp libqt4-ruby-1.4.10/ruby/qtruby/src/Qt.cpp
+--- libqt4-ruby-1.4.10~/ruby/qtruby/src/Qt.cpp	2008-04-30 11:58:31.000000000 +0200
++++ libqt4-ruby-1.4.10/ruby/qtruby/src/Qt.cpp	2008-06-03 21:33:16.000000000 +0200
+@@ -693,7 +693,7 @@
+ VALUE
+ qvariant_value(VALUE /*self*/, VALUE variant_value_klass, VALUE variant_value)
+ {
+-	char * classname = rb_class2name(variant_value_klass);
++	const char * classname = rb_class2name(variant_value_klass);
+     smokeruby_object *o = value_obj_info(variant_value);
+ 	if (o == 0 || o->ptr == 0) {
+ 		return Qnil;
+@@ -809,7 +809,7 @@
+ 		}
+ 	}
+ 
+-	char * classname = rb_obj_classname(argv[0]);
++	const char * classname = rb_obj_classname(argv[0]);
+     smokeruby_object *o = value_obj_info(argv[0]);
+ 	if (o == 0 || o->ptr == 0) {
+ 		// Assume the Qt::Variant can be created with a
+@@ -872,7 +872,7 @@
+ const char *
+ get_VALUEtype(VALUE ruby_value)
+ {
+-	char * classname = rb_obj_classname(ruby_value);
++	const char * classname = rb_obj_classname(ruby_value);
+ 	const char *r = "";
+ 	if (ruby_value == Qnil)
+ 		r = "u";
+@@ -1797,7 +1797,7 @@
+ static VALUE
+ method_missing(int argc, VALUE * argv, VALUE self)
+ {
+-	char * methodName = rb_id2name(SYM2ID(argv[0]));
++  char * methodName = const_cast<char *>(rb_id2name(SYM2ID(argv[0])));
+     VALUE klass = rb_funcall(self, rb_intern("class"), 0);
+ 
+ 	// Look for 'thing?' methods, and try to match isThing() or hasThing() in the Smoke runtime
+@@ -1847,7 +1847,7 @@
+ 
+ 			VALUE retval = rb_funcall2(qt_internal_module, rb_intern("do_method_missing"), argc+3, temp_stack);
+ 			if (_current_method == -1) {
+-				char * op = rb_id2name(SYM2ID(argv[0]));
++				const char * op = rb_id2name(SYM2ID(argv[0]));
+ 				if (	qstrcmp(op, "-") == 0
+ 						|| qstrcmp(op, "+") == 0
+ 						|| qstrcmp(op, "/") == 0
+@@ -1954,7 +1954,7 @@
+ class_method_missing(int argc, VALUE * argv, VALUE klass)
+ {
+ 	VALUE result = Qnil;
+-	char * methodName = rb_id2name(SYM2ID(argv[0]));
++	char * methodName = const_cast<char *>(rb_id2name(SYM2ID(argv[0])));
+ 	VALUE * temp_stack = ALLOCA_N(VALUE, argc+3);
+     temp_stack[0] = rb_str_new2("Qt");
+     temp_stack[1] = rb_str_new2(methodName);
+@@ -2068,7 +2068,7 @@
+ 	}
+ 
+ 	{ 
+-		QByteArray * mcid = find_cached_selector(argc+4, temp_stack, klass, rb_class2name(klass));
++	  QByteArray * mcid = find_cached_selector(argc+4, temp_stack, klass, const_cast<char *>(rb_class2name(klass)));
+ 
+ 		if (_current_method == -1) {
+ 			retval = rb_funcall2(qt_internal_module, rb_intern("do_method_missing"), argc+4, temp_stack);
+diff -urNad libqt4-ruby-1.4.10~/CMakeLists.txt libqt4-ruby-1.4.10/CMakeLists.txt
+--- libqt4-ruby-1.4.10~/CMakeLists.txt	2007-06-19 15:25:37.000000000 +0200
++++ libqt4-ruby-1.4.10/CMakeLists.txt	2008-05-09 23:03:52.000000000 +0200
+@@ -18,9 +18,16 @@
+ FIND_PACKAGE(Perl REQUIRED)
+ FIND_PACKAGE (Qt4 REQUIRED)
+ 
++EXECUTE_PROCESS(COMMAND uname -m OUTPUT_VARIABLE ARCH)
++
+ add_definitions (${QT_DEFINITIONS}  -DHAVE_CONFIG_H=1)
++IF(ARCH MATCHES parisc)
++  ADD_DEFINITIONS(-fno-exceptions -fno-check-new -fno-common -fPIC -O2)
++ENDIF(ARCH MATCHES parisc)
+ include_directories (${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${QT_INCLUDES} )
+ 
++
++
+ FIND_PACKAGE (RUBY REQUIRED)
+ FIND_PACKAGE (OpenGL REQUIRED)
+ 
+diff -urNad libqt4-ruby-1.4.10~/ruby/qtruby/src/lib/Qt/qtruby4.rb libqt4-ruby-1.4.10/ruby/qtruby/src/lib/Qt/qtruby4.rb
+--- libqt4-ruby-1.4.10~/ruby/qtruby/src/lib/Qt/qtruby4.rb	2008-04-26 13:41:11.000000000 +0200
++++ libqt4-ruby-1.4.10/ruby/qtruby/src/lib/Qt/qtruby4.rb	2008-05-09 23:04:38.000000000 +0200
+@@ -2374,11 +2374,14 @@
+ 				t.sub!(/(::)?Ptr$/, '')
+ 				t.sub!(/[&*]$/, '')
+ 				if argtype == t
+-					return 1
++					return 2
+ 				elsif classIsa(argtype, t)
+ 					return 0
++                                
+ 				elsif isEnum(argtype) and 
+-						(t =~ /int|qint32|uint|quint32|long|ulong/ or isEnum(t))
++						(t =~ /int|qint32|uint|quint32|long|ulong/) # We cast only to int, not to another enum type.
++					return 1 # We prefer to cast to int than to an enum of different type
++				elsif isEnum(argtype) and isEnum(t)
+ 					return 0
+ 				end
+ 			end
+diff -urNad libqt4-ruby-1.4.10~/smoke/qt/CMakeLists.txt libqt4-ruby-1.4.10/smoke/qt/CMakeLists.txt
+--- libqt4-ruby-1.4.10~/smoke/qt/CMakeLists.txt	2008-05-01 10:05:58.000000000 +0200
++++ libqt4-ruby-1.4.10/smoke/qt/CMakeLists.txt	2008-05-09 23:07:35.000000000 +0200
+@@ -136,7 +136,7 @@
+                               ${QT_QTWEBKIT_LIBRARY}
+                               ${_smokeqt_optional_libs} )
+ 
+-set_target_properties(smokeqt PROPERTIES VERSION 2.0.0 SOVERSION 2 )
++set_target_properties(smokeqt PROPERTIES VERSION 1.3.0 SOVERSION 1 )
+ 
+ install(TARGETS smokeqt DESTINATION ${CMAKE_INSTALL_PREFIX}/lib )
+ 
+diff -urNad libqt4-ruby-1.4.10~/ruby/qtruby/rails_support/CMakeLists.txt libqt4-ruby-1.4.10/ruby/qtruby/rails_support/CMakeLists.txt
+--- libqt4-ruby-1.4.10~/ruby/qtruby/rails_support/CMakeLists.txt	2007-09-16 15:21:16.000000000 +0200
++++ libqt4-ruby-1.4.10/ruby/qtruby/rails_support/CMakeLists.txt	2008-05-09 23:02:09.000000000 +0200
+@@ -1 +1 @@
+-install( FILES active_item_model.rb  active_table_model.rb DESTINATION ${CUSTOM_RUBY_SITE_LIB_DIR}/Qt )
++install( FILES active_item_model.rb  active_table_model.rb DESTINATION ${RUBY_RUBY_LIB_PATH}/Qt )
+diff -urNad libqt4-ruby-1.4.10~/ruby/qtruby/src/CMakeLists.txt libqt4-ruby-1.4.10/ruby/qtruby/src/CMakeLists.txt
+--- libqt4-ruby-1.4.10~/ruby/qtruby/src/CMakeLists.txt	2007-10-31 15:16:33.000000000 +0100
++++ libqt4-ruby-1.4.10/ruby/qtruby/src/CMakeLists.txt	2008-05-09 22:59:35.000000000 +0200
+@@ -30,7 +30,7 @@
+ 
+ set_target_properties(qtruby4 PROPERTIES PREFIX "")
+ 
+-install(TARGETS qtruby4  DESTINATION ${CUSTOM_RUBY_SITE_ARCH_DIR} )
++install(TARGETS qtruby4  DESTINATION ${RUBY_ARCH_DIR} )
+ 
+ if (Q_WS_MAC)
+     install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CUSTOM_RUBY_SITE_ARCH_DIR}/qtruby4.so\"  \"${CUSTOM_RUBY_SITE_ARCH_DIR}/qtruby4.bundle\" )" )
+diff -urNad libqt4-ruby-1.4.10~/ruby/qtruby/src/lib/CMakeLists.txt libqt4-ruby-1.4.10/ruby/qtruby/src/lib/CMakeLists.txt
+--- libqt4-ruby-1.4.10~/ruby/qtruby/src/lib/CMakeLists.txt	2007-09-16 15:21:16.000000000 +0200
++++ libqt4-ruby-1.4.10/ruby/qtruby/src/lib/CMakeLists.txt	2008-05-09 23:00:46.000000000 +0200
+@@ -1,7 +1,7 @@
+ 
+ add_subdirectory( Qt )
+ 
+-install( FILES  Qt.rb Qt4.rb Qt3.rb DESTINATION ${CUSTOM_RUBY_SITE_LIB_DIR} )
++install( FILES  Qt.rb Qt4.rb Qt3.rb DESTINATION ${RUBY_RUBY_LIB_PATH} )
+ 
+ #original Makefile.am contents follow:
+ 
+diff -urNad libqt4-ruby-1.4.10~/ruby/qtruby/src/lib/Qt/CMakeLists.txt libqt4-ruby-1.4.10/ruby/qtruby/src/lib/Qt/CMakeLists.txt
+--- libqt4-ruby-1.4.10~/ruby/qtruby/src/lib/Qt/CMakeLists.txt	2007-09-16 15:21:16.000000000 +0200
++++ libqt4-ruby-1.4.10/ruby/qtruby/src/lib/Qt/CMakeLists.txt	2008-05-09 23:01:34.000000000 +0200
+@@ -1,5 +1,5 @@
+ 
+-install( FILES  qtruby4.rb DESTINATION ${CUSTOM_RUBY_SITE_LIB_DIR}/Qt )
++install( FILES  qtruby4.rb DESTINATION ${RUBY_RUBY_LIB_PATH}/Qt )
+ 
+ 
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/designer/calculatorbuilder/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/designer/calculatorbuilder/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/designer/calculatorbuilder/main.rb	2007-04-12 19:03:59.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/designer/calculatorbuilder/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 	
+-require 'Qt'
++require 'Qt4'
+ require 'qrc_calculatorbuilder.rb'
+ require 'calculatorform.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/designer/calculatorform/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/designer/calculatorform/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/designer/calculatorform/main.rb	2007-04-12 19:03:59.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/designer/calculatorform/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 	
+-require 'Qt'
++require 'Qt4'
+ require 'calculatorform.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/desktop/screenshot/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/desktop/screenshot/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/desktop/screenshot/main.rb	2007-04-12 19:04:00.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/desktop/screenshot/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'screenshot.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/desktop/systray/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/desktop/systray/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/desktop/systray/main.rb	2007-04-12 19:04:00.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/desktop/systray/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'qrc_systray.rb'
+ require 'window.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/complexwizard/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/complexwizard/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/complexwizard/main.rb	2007-04-12 19:04:01.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/complexwizard/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'licensewizard.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/configdialog/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/configdialog/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/configdialog/main.rb	2007-04-12 19:04:01.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/configdialog/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'configdialog.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/extension/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/extension/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/extension/main.rb	2007-04-12 19:04:01.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/extension/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'finddialog.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/findfiles/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/findfiles/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/findfiles/main.rb	2007-04-12 19:04:01.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/findfiles/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/simplewizard/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/simplewizard/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/simplewizard/main.rb	2007-04-12 19:04:01.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/simplewizard/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'classwizard.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/standarddialogs/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/standarddialogs/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/standarddialogs/main.rb	2007-04-12 19:04:01.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/standarddialogs/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'dialog.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/tabdialog/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/tabdialog/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/dialogs/tabdialog/main.rb	2007-04-12 19:04:01.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/dialogs/tabdialog/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'tabdialog.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/draggableicons/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/draggableicons/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/draggableicons/main.rb	2007-04-12 19:04:02.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/draggableicons/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'dragwidget.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/draggabletext/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/draggabletext/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/draggabletext/main.rb	2007-04-12 19:04:02.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/draggabletext/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'dragwidget.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/dropsite/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/dropsite/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/dropsite/main.rb	2007-04-12 19:04:02.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/dropsite/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'dropsitewindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/fridgemagnets/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/fridgemagnets/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/fridgemagnets/main.rb	2007-04-12 19:04:02.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/fridgemagnets/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'dragwidget.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/puzzle/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/puzzle/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/draganddrop/puzzle/main.rb	2007-04-12 19:04:02.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/draganddrop/puzzle/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/graphicsview/collidingmice/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/graphicsview/collidingmice/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/graphicsview/collidingmice/main.rb	2007-06-12 04:55:39.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/graphicsview/collidingmice/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+     
+-require 'Qt'
++require 'Qt4'
+ require 'qrc_mice.rb'
+ require 'mouse.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/graphicsview/dragdroprobot/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/graphicsview/dragdroprobot/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/graphicsview/dragdroprobot/main.rb	2007-04-12 19:04:03.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/graphicsview/dragdroprobot/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+     
+-require 'Qt'
++require 'Qt4'
+ require 'qrc_robot.rb'
+ require 'coloritem.rb'
+ require 'robot.rb'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/chart/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/chart/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/chart/main.rb	2007-04-12 19:04:04.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/chart/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'qrc_chart.rb'
+ require 'mainwindow.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/dirview/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/dirview/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/dirview/main.rb	2007-04-12 19:04:04.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/dirview/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 	
+-require 'Qt'
++require 'Qt4'
+ 	
+ app = Qt::Application.new(ARGV)
+ 	
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/pixelator/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/pixelator/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/pixelator/main.rb	2007-04-12 19:04:04.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/pixelator/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'qrc_images.rb'
+ require 'mainwindow.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/puzzle/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/puzzle/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/puzzle/main.rb	2007-04-12 19:04:04.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/puzzle/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/simpledommodel/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/simpledommodel/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/simpledommodel/main.rb	2007-04-12 19:04:04.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/simpledommodel/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/simpletreemodel/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/simpletreemodel/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/simpletreemodel/main.rb	2007-04-12 19:04:04.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/simpletreemodel/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'qrc_simpletreemodel.rb'
+ require 'treemodel.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/sortingmodel/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/sortingmodel/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/sortingmodel/main.rb	2007-04-12 19:04:04.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/sortingmodel/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'treemodel.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/spinboxdelegate/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/spinboxdelegate/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/itemviews/spinboxdelegate/main.rb	2007-04-12 19:04:04.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/itemviews/spinboxdelegate/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 	
+-require 'Qt'
++require 'Qt4'
+ require 'spinboxdelegate.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/killerfilter/killerfilter.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/killerfilter/killerfilter.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/killerfilter/killerfilter.rb	2007-04-12 19:04:05.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/killerfilter/killerfilter.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -2,7 +2,7 @@
+ 
+ # This is the EventFilter example from Chapter 16 of 'Programming with Qt'
+ 
+-require 'Qt'
++require 'Qt4'
+ 
+ class KillerFilter < Qt::Object
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/layouts/basiclayouts/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/layouts/basiclayouts/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/layouts/basiclayouts/main.rb	2007-04-12 19:04:06.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/layouts/basiclayouts/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'dialog.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/layouts/borderlayout/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/layouts/borderlayout/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/layouts/borderlayout/main.rb	2007-04-12 19:04:06.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/layouts/borderlayout/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/layouts/flowlayouts/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/layouts/flowlayouts/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/layouts/flowlayouts/main.rb	2007-04-12 19:04:06.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/layouts/flowlayouts/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/application/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/application/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/application/main.rb	2007-04-12 19:04:07.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/application/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/dockwidgets/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/dockwidgets/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/dockwidgets/main.rb	2007-04-12 19:04:07.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/dockwidgets/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/mdi/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/mdi/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/mdi/main.rb	2007-04-12 19:04:07.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/mdi/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/menus/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/menus/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/menus/main.rb	2007-04-12 19:04:07.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/menus/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/recentfiles/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/recentfiles/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/recentfiles/main.rb	2007-04-12 19:04:07.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/recentfiles/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/sdi/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/sdi/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/mainwindows/sdi/main.rb	2007-04-12 19:04:07.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/mainwindows/sdi/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/broadcastreceiver/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/network/broadcastreceiver/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/broadcastreceiver/main.rb	2007-04-12 19:04:08.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/network/broadcastreceiver/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'receiver.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/broadcastsender/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/network/broadcastsender/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/broadcastsender/main.rb	2007-04-12 19:04:08.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/network/broadcastsender/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'sender.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/fortuneclient/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/network/fortuneclient/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/fortuneclient/main.rb	2007-04-12 19:04:08.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/network/fortuneclient/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'client.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/fortuneserver/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/network/fortuneserver/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/fortuneserver/main.rb	2007-04-12 19:04:08.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/network/fortuneserver/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'server.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/ftp/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/network/ftp/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/ftp/main.rb	2007-04-12 19:04:08.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/network/ftp/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'ftpwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/http/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/network/http/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/http/main.rb	2007-04-12 19:04:08.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/network/http/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'httpwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/loopback/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/network/loopback/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/network/loopback/main.rb	2007-04-12 19:04:08.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/network/loopback/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'dialog.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/opengl/grabber/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/opengl/grabber/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/opengl/grabber/main.rb	2007-04-12 19:04:09.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/opengl/grabber/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/opengl/hellogl/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/opengl/hellogl/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/opengl/hellogl/main.rb	2007-04-12 19:04:09.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/opengl/hellogl/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/opengl/textures/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/opengl/textures/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/opengl/textures/main.rb	2007-04-12 19:04:09.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/opengl/textures/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/basicdrawing/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/basicdrawing/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/basicdrawing/main.rb	2007-04-12 19:04:11.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/basicdrawing/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/concentriccircles/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/concentriccircles/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/concentriccircles/main.rb	2007-04-12 19:04:11.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/concentriccircles/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/fontsampler/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/fontsampler/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/fontsampler/main.rb	2007-04-12 19:04:11.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/fontsampler/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/imagecomposition/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/imagecomposition/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/imagecomposition/main.rb	2007-04-12 19:04:11.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/imagecomposition/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'imagecomposer.rb'
+ require 'qrc_imagecomposition.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/painterpaths/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/painterpaths/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/painterpaths/main.rb	2007-04-12 19:04:10.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/painterpaths/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/svgviewer/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/svgviewer/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/svgviewer/main.rb	2007-04-12 19:04:10.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/svgviewer/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ require 'qrc_svgviewer.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/transformations/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/transformations/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/painting/transformations/main.rb	2007-04-12 19:04:11.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/painting/transformations/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/passivepopup/passivepopup.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/passivepopup/passivepopup.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/passivepopup/passivepopup.rb	2007-04-12 19:04:12.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/passivepopup/passivepopup.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env ruby
+ 
+-require 'Qt'
++require 'Qt4'
+  
+ class PassiveWindow < Qt::Frame
+ 	MARGIN = 20
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/chat/chat.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/chat/chat.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/chat/chat.rb	2007-04-12 19:04:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/chat/chat.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+     
+-require 'Qt'
++require 'Qt4'
+ require 'chat_interface.rb'
+ require 'chat_adaptor.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/complexpingpong/complexping.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/complexpingpong/complexping.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/complexpingpong/complexping.rb	2007-04-12 19:04:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/complexpingpong/complexping.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+     
+-require 'Qt'
++require 'Qt4'
+ require 'ping-common.rb'
+    
+ class Ping < Qt::Object
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/complexpingpong/complexpong.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/complexpingpong/complexpong.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/complexpingpong/complexpong.rb	2007-04-12 19:04:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/complexpingpong/complexpong.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -25,7 +25,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'ping-common.rb'
+ 
+ class Pong < Qt::DBusAbstractAdaptor
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/listnames/listnames.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/listnames/listnames.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/listnames/listnames.rb	2007-04-12 19:04:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/listnames/listnames.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+     
+-require 'Qt'
++require 'Qt4'
+ 
+ def method1()
+     qDebug("Method 1:")
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/pingpong/ping.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/pingpong/ping.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/pingpong/ping.rb	2007-04-12 19:04:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/pingpong/ping.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'ping-common.rb'
+ 	
+ app = Qt::CoreApplication.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/pingpong/pong.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/pingpong/pong.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/pingpong/pong.rb	2007-04-12 19:04:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/pingpong/pong.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'ping-common.rb'
+ 
+ class Pong < Qt::Object
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/remotecontrolledcar/car/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/remotecontrolledcar/car/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/remotecontrolledcar/car/main.rb	2007-04-12 19:04:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/remotecontrolledcar/car/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'car.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/remotecontrolledcar/controller/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/remotecontrolledcar/controller/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qdbus/remotecontrolledcar/controller/main.rb	2007-04-12 19:04:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qdbus/remotecontrolledcar/controller/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'controller.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/qtscribble/scribble.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/qtscribble/scribble.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/qtscribble/scribble.rb	2007-04-12 19:04:14.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/qtscribble/scribble.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -5,7 +5,7 @@
+  # window knows how to redraw itself.
+  #
+ 
+-require 'Qt'
++require 'Qt4'
+ 	
+ 	class ScribbleArea < Qt::Widget
+ 	
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/richtext/calendar/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/richtext/calendar/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/richtext/calendar/main.rb	2007-04-12 19:04:15.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/richtext/calendar/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/richtext/orderform/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/richtext/orderform/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/richtext/orderform/main.rb	2007-04-12 19:04:15.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/richtext/orderform/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/richtext/syntaxhighlighter/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/richtext/syntaxhighlighter/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/richtext/syntaxhighlighter/main.rb	2007-04-12 19:04:15.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/richtext/syntaxhighlighter/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/CameraDialog.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/CameraDialog.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/CameraDialog.rb	2007-04-12 19:04:16.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/CameraDialog.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -5,7 +5,7 @@
+ # http://www.ruby-lang.org/en/LICENSE.txt.
+ #
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'World'
+ require 'Camera'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/Canvas.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/Canvas.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/Canvas.rb	2007-04-12 19:04:16.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/Canvas.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -5,7 +5,7 @@
+ # http://www.ruby-lang.org/en/LICENSE.txt.
+ #
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'opengl'
+ require 'World'
+ require 'Cloud'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/CloudView.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/CloudView.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/CloudView.rb	2007-04-12 19:04:16.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/CloudView.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -5,7 +5,7 @@
+ # http://www.ruby-lang.org/en/LICENSE.txt.
+ #
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'View'
+ require 'Cloud'
+ require 'Params'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/World.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/World.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/World.rb	2007-04-12 19:04:16.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/World.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -6,7 +6,7 @@
+ #
+ 
+ require 'singleton'
+-require 'Qt'
++require 'Qt4'
+ require 'Params'
+ require 'Cloud'
+ require 'Flock'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/WorldWindow.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/WorldWindow.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/WorldWindow.rb	2007-04-12 19:04:16.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/WorldWindow.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -5,7 +5,7 @@
+ # http://www.ruby-lang.org/en/LICENSE.txt.
+ #
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'Canvas'
+ require 'CameraDialog'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/ruboids.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/ruboids.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/ruboids/ruboids/ruboids.rb	2007-04-12 19:04:16.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/ruboids/ruboids/ruboids.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -6,7 +6,7 @@
+ # http://www.ruby-lang.org/en/LICENSE.txt.
+ #
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'World'
+ require 'WorldWindow'
+ require 'Canvas'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/textedit/textedit.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/textedit/textedit.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/textedit/textedit.rb	2007-04-12 19:04:17.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/textedit/textedit.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,6 +1,6 @@
+ #!/usr/bin/ruby -w
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'rexml/document'
+ 
+ require '../base/rui.rb'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t1/t1.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t1/t1.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t1/t1.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t1/t1.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ 
+ a = Qt::Application.new(ARGV)
+ hello = Qt::PushButton.new('Hello World!', nil)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t10/cannon.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t10/cannon.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t10/cannon.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t10/cannon.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class CannonField < Qt::Widget
+     signals 'angleChanged(int)', 'forceChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t10/lcdrange.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t10/lcdrange.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t10/lcdrange.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t10/lcdrange.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class LCDRange < Qt::Widget
+     signals 'valueChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t10/t10.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t10/t10.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t10/t10.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t10/t10.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'lcdrange.rb'
+ require 'cannon.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t11/cannon.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t11/cannon.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t11/cannon.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t11/cannon.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,5 +1,5 @@
+ include Math
+-require 'Qt'
++require 'Qt4'
+ 
+ class CannonField < Qt::Widget
+     
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t11/lcdrange.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t11/lcdrange.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t11/lcdrange.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t11/lcdrange.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class LCDRange < Qt::Widget
+     signals 'valueChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t11/t11.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t11/t11.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t11/t11.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t11/t11.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'lcdrange.rb'
+ require 'cannon.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t12/cannon.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t12/cannon.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t12/cannon.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t12/cannon.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,5 +1,5 @@
+ include Math
+-require 'Qt'
++require 'Qt4'
+ 
+ class CannonField < Qt::Widget
+     
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t12/lcdrange.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t12/lcdrange.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t12/lcdrange.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t12/lcdrange.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ require 'pp'
+ 
+ class LCDRange < Qt::Widget
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t12/t12.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t12/t12.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t12/t12.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t12/t12.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'lcdrange.rb'
+ require 'cannon.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t13/cannon.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t13/cannon.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t13/cannon.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t13/cannon.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ include Math
+ 
+ class CannonField < Qt::Widget
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t13/gamebrd.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t13/gamebrd.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t13/gamebrd.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t13/gamebrd.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ require 'lcdrange.rb'
+ require 'cannon.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t13/lcdrange.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t13/lcdrange.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t13/lcdrange.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t13/lcdrange.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class LCDRange < Qt::Widget
+     signals 'valueChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t13/t13.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t13/t13.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t13/t13.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t13/t13.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'gamebrd.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t14/t14.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t14/t14.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t14/t14.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t14/t14.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'gamebrd.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t2/t2.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t2/t2.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t2/t2.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t2/t2.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt';
++require 'Qt4';
+ 
+ a = Qt::Application.new(ARGV)
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t3/t3.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t3/t3.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t3/t3.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t3/t3.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ 
+ app = Qt::Application.new(ARGV)
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t4/t4.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t4/t4.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t4/t4.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t4/t4.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ 
+ class MyWidget < Qt::Widget
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t5/t5.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t5/t5.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t5/t5.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t5/t5.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ 
+ class MyWidget < Qt::Widget
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t6/t6.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t6/t6.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t6/t6.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t6/t6.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ 
+ class LCDRange < Qt::Widget
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t7/lcdrange.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t7/lcdrange.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t7/lcdrange.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t7/lcdrange.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,5 +1,5 @@
+ #!/usr/bin/ruby -w
+-require 'Qt'
++require 'Qt4'
+ 
+ class LCDRange < Qt::Widget
+     signals 'valueChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t7/t7.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t7/t7.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t7/t7.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t7/t7.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'lcdrange.rb'
+ 
+ class MyWidget < Qt::Widget
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t8/cannon.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t8/cannon.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t8/cannon.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t8/cannon.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class CannonField < Qt::Widget
+ 	signals 'angleChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t8/lcdrange.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t8/lcdrange.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t8/lcdrange.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t8/lcdrange.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class LCDRange < Qt::Widget
+ 	signals 'valueChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t8/t8.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t8/t8.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t8/t8.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t8/t8.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'lcdrange.rb'
+ require 'cannon.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t9/cannon.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t9/cannon.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t9/cannon.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t9/cannon.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class CannonField < Qt::Widget
+     signals 'angleChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t9/lcdrange.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t9/lcdrange.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t9/lcdrange.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t9/lcdrange.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class LCDRange < Qt::Widget
+     signals 'valueChanged(int)'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t9/t9.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t9/t9.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/tutorial/t9/t9.rb	2007-04-12 19:03:13.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/tutorial/t9/t9.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env ruby
+ $VERBOSE = true; $:.unshift File.dirname($0)
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'lcdrange.rb'
+ require 'cannon.rb'
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/analogclock/analogclock.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/analogclock/analogclock.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/analogclock/analogclock.rb	2007-04-12 19:04:19.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/analogclock/analogclock.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -25,7 +25,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ 
+ # an analog clock widget using an internal Qt::Timer
+ class AnalogClock < Qt::Widget
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/analogclock/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/analogclock/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/analogclock/main.rb	2007-04-12 19:04:19.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/analogclock/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env ruby
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'analogclock.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/calculator/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/calculator/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/calculator/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/calculator/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'calculator.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/charactermap/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/charactermap/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/charactermap/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/charactermap/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/digitalclock/digitalclock.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/digitalclock/digitalclock.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/digitalclock/digitalclock.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/digitalclock/digitalclock.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,4 +1,4 @@
+-require 'Qt'
++require 'Qt4'
+ 
+ class DigitalClock < Qt::LCDNumber
+ 
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/digitalclock/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/digitalclock/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/digitalclock/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/digitalclock/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env ruby
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'digitalclock.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/groupbox/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/groupbox/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/groupbox/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/groupbox/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/icons/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/icons/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/icons/main.rb	2007-04-12 19:04:19.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/icons/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/imageviewer/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/imageviewer/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/imageviewer/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/imageviewer/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'imageviewer.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/lineedits/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/lineedits/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/lineedits/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/lineedits/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/movie/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/movie/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/movie/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/movie/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'movieplayer.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/screenshot/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/screenshot/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/screenshot/main.rb	2007-04-12 19:04:19.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/screenshot/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'screenshot.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/scribble/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/scribble/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/scribble/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/scribble/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/sliders/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/sliders/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/sliders/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/sliders/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/spinboxes/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/spinboxes/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/spinboxes/main.rb	2007-04-12 19:04:19.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/spinboxes/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'window.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/tetrix/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/tetrix/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/tetrix/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/tetrix/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'tetrixwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/tooltips/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/tooltips/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/tooltips/main.rb	2007-04-12 19:04:19.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/tooltips/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'sortingbox.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/wiggly/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/wiggly/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/wiggly/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/wiggly/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env ruby
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'dialog.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/windowflags/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/windowflags/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/widgets/windowflags/main.rb	2007-04-12 19:04:18.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/widgets/windowflags/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'controllerwindow.rb'
+ 
+ app = Qt::Application.new(ARGV)
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/xml/dombookmarks/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/xml/dombookmarks/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/xml/dombookmarks/main.rb	2007-04-12 19:04:20.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/xml/dombookmarks/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ $KCODE = 'u'
+diff -urNad libqt4-ruby-1.4.9~/ruby/qtruby/examples/xml/saxbookmarks/main.rb libqt4-ruby-1.4.9/ruby/qtruby/examples/xml/saxbookmarks/main.rb
+--- libqt4-ruby-1.4.9~/ruby/qtruby/examples/xml/saxbookmarks/main.rb	2007-04-12 19:04:20.000000000 +0200
++++ libqt4-ruby-1.4.9/ruby/qtruby/examples/xml/saxbookmarks/main.rb	2007-10-28 09:28:09.000000000 +0100
+@@ -23,7 +23,7 @@
+ ** Translated to QtRuby by Richard Dale
+ =end
+ 
+-require 'Qt'
++require 'Qt4'
+ require 'mainwindow.rb'
+ 
+ $KCODE = 'u'
