@@ -11,12 +11,13 @@ Summary:	Ruby bindings for the Qt4 GUI library
 #Summary(pl.UTF-8):	-
 Name:		ruby-%{_pnam}
 Version:	1.4.10
-Release:	0.1
+Release:	0.2
 License:	GPL v2
 Group:		Development/Languages
 Source0:	http://rubyforge.org/frs/download.php/36331/%{_pnam}-%{version}.tgz
 # Source0-md5:	3bbc8f869ad50123e61e493795dab38a
 Patch0:		%{name}-debian.patch
+Patch1:		%{name}-lib64.patch
 URL:		http://rubyforge.org/projects/korundum/
 BuildRequires:	cmake >= 2.6.0
 BuildRequires:	qscintilla2-devel
@@ -35,20 +36,26 @@ Ruby bindings for the Qt4 GUI library.
 %prep
 %setup -q -n %{_pnam}-%{version}
 %patch0 -p1
+%patch1 -p1
 
 %build
+install -d build
+cd build
 %cmake \
 	-DCMAKE_INSTALL_PREFIX="%{_prefix}" \
 	-DRUBY_EXECUTABLE="%{__ruby}" \
 	-DCMAKE_VERBOSE_MAKEFILE=1 \
-	.
+%if "%{_lib}" == "lib64"
+	-DLIB_SUFFIX=64 \
+%endif
+	../
 
 %{__make}
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-%{__make} install \
+%{__make} -C build install \
 	DESTDIR=$RPM_BUILD_ROOT
 
 %clean
@@ -62,6 +69,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog README
 %attr(755,root,root) %{_bindir}/*
 %{_libdir}/libsmokeqt.so
+%attr(755,root,root) %ghost %{_libdir}/lib*.so.?
 %attr(755,root,root) %{_libdir}/lib*.so.*.*.*
 %{ruby_rubylibdir}/Qt.rb
 %dir %{ruby_rubylibdir}/Qt
