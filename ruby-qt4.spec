@@ -1,17 +1,17 @@
 #
 # TODO:
 # - file /usr/bin/rbqtapi from install of ruby-qt4-qtruby-1.4.10-0.1.pentium4 conflicts with file from package kdebindings-ruby-qt-3.5.9-2.i686
+# - complete spec (BRs,...)
 # - switch to ruby_vendor{lib,arch}dirs - probably there is a problem with /usr/share/cmake/Modules/FindRuby.cmake:41: \
 #   EXECUTE_PROCESS(COMMAND ${RUBY_EXECUTABLE} -r vendor-specific -e "print 'true'"
-# - complete spec (BRs,...)
 # - fix qwt issue
 #
 %define		_pnam	qt4-qtruby
 Summary:	Ruby bindings for the Qt4 GUI library
-#Summary(pl.UTF-8):	-
+Summary(pl.UTF-8):	Dowi±zania ruby dla biblioteki Qt4 GUI
 Name:		ruby-%{_pnam}
 Version:	1.4.10
-Release:	0.2
+Release:	1
 License:	GPL v2
 Group:		Development/Languages
 Source0:	http://rubyforge.org/frs/download.php/36331/%{_pnam}-%{version}.tgz
@@ -31,7 +31,20 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 %description
 Ruby bindings for the Qt4 GUI library.
 
-#%description -l pl.UTF-8
+%description -l pl.UTF-8
+Dowi±zania ruby dla biblioteki Qt4 GUI.
+
+%package devel
+Summary:	Ruby bindings development files for Qt4 GUI
+Summary(pl.UTF-8):	Pliki nagÅ~BÃ³wkowe dowi±zañ ruby dla Qt4 GUI
+Group:		Development/Libraries
+Requires:	%{name} = %{version}-%{release}
+
+%description devel
+Ruby bindings development files for Qt4 GUI.
+
+%description devel -l pl.UTF-8
+Pliki nagÅ~BÃ³wkowe dowi±zañ ruby dla Qt4 GUI.
 
 %prep
 %setup -q -n %{_pnam}-%{version}
@@ -80,3 +93,7 @@ rm -rf $RPM_BUILD_ROOT
 %{ruby_rubylibdir}/Qt3.rb
 %{ruby_rubylibdir}/Qt4.rb
 %attr(755,root,root) %{ruby_archdir}/qtruby4.so
+
+%files devel
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/libsmokeqt.so
