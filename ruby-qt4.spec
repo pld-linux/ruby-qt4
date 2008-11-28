@@ -67,10 +67,11 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(644,root,root,755)
 %doc AUTHORS ChangeLog README
-%attr(755,root,root) %{_bindir}/*
-%{_libdir}/libsmokeqt.so
-%attr(755,root,root) %ghost %{_libdir}/lib*.so.?
-%attr(755,root,root) %{_libdir}/lib*.so.*.*.*
+%attr(755,root,root) %{_bindir}/rbqtapi
+%attr(755,root,root) %{_bindir}/rbrcc
+%attr(755,root,root) %{_bindir}/rbuic4
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqt.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqt.so.*.*.*
 %{ruby_rubylibdir}/Qt.rb
 %dir %{ruby_rubylibdir}/Qt
 %{ruby_rubylibdir}/Qt/active_item_model.rb
