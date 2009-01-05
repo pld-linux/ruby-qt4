@@ -1,5 +1,5 @@
-#
 # TODO:
+# - pl is corrupted (
 # - file /usr/bin/rbqtapi from install of ruby-qt4-qtruby-1.4.10-0.1.pentium4 conflicts with file from package kdebindings-ruby-qt-3.5.9-2.i686
 # - complete spec (BRs,...)
 # - switch to ruby_vendor{lib,arch}dirs - probably there is a problem with /usr/share/cmake/Modules/FindRuby.cmake:41: \
@@ -8,16 +8,16 @@
 #
 %define		_pnam	qt4-qtruby
 Summary:	Ruby bindings for the Qt4 GUI library
-Summary(pl.UTF-8):	Dowi±zania ruby dla biblioteki Qt4 GUI
-Name:		ruby-%{_pnam}
+Summary(pl.UTF-8):	DowiÄ…zania ruby dla biblioteki Qt4 GUI
+Name:		ruby-qt4
 Version:	1.4.10
 Release:	1
 License:	GPL v2
 Group:		Development/Languages
-Source0:	http://rubyforge.org/frs/download.php/36331/%{_pnam}-%{version}.tgz
+Source0:	http://rubyforge.org/frs/download.php/36331/qt4-qtruby-%{version}.tgz
 # Source0-md5:	3bbc8f869ad50123e61e493795dab38a
-Patch0:		%{name}-debian.patch
-Patch1:		%{name}-lib64.patch
+Patch0:		%{name}-qtruby-debian.patch
+Patch1:		%{name}-qtruby-lib64.patch
 URL:		http://rubyforge.org/projects/korundum/
 BuildRequires:	cmake >= 2.6.0
 BuildRequires:	qscintilla2-devel
@@ -32,11 +32,11 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 Ruby bindings for the Qt4 GUI library.
 
 %description -l pl.UTF-8
-Dowi±zania ruby dla biblioteki Qt4 GUI.
+DowiÄ…zania ruby dla biblioteki Qt4 GUI.
 
 %package devel
 Summary:	Ruby bindings development files for Qt4 GUI
-Summary(pl.UTF-8):	Pliki nagÅ~BÃ³wkowe dowi±zañ ruby dla Qt4 GUI
+Summary(pl.UTF-8):	Pliki nagÄ¹~BÄ‚Å‚wkowe dowiÄ…zaÅ„ ruby dla Qt4 GUI
 Group:		Development/Libraries
 Requires:	%{name} = %{version}-%{release}
 
@@ -44,10 +44,10 @@ Requires:	%{name} = %{version}-%{release}
 Ruby bindings development files for Qt4 GUI.
 
 %description devel -l pl.UTF-8
-Pliki nagÅ~BÃ³wkowe dowi±zañ ruby dla Qt4 GUI.
+Pliki nagÄ¹~BÄ‚Å‚wkowe dowiÄ…zaÅ„ ruby dla Qt4 GUI.
 
 %prep
-%setup -q -n %{_pnam}-%{version}
+%setup -q -n qt4-qtruby-%{version}
 %patch0 -p1
 %patch1 -p1
 
