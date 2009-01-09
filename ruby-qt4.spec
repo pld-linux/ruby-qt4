@@ -7,11 +7,13 @@
 # - fix qwt issue
 #
 %define		_pnam	qt4-qtruby
+%define		qtver	4.4.3
+
 Summary:	Ruby bindings for the Qt4 GUI library
 Summary(pl.UTF-8):	Dowiązania ruby dla biblioteki Qt4 GUI
 Name:		ruby-qt4
 Version:	1.4.10
-Release:	1
+Release:	2
 License:	GPL v2
 Group:		Development/Languages
 Source0:	http://rubyforge.org/frs/download.php/36331/qt4-qtruby-%{version}.tgz
@@ -19,9 +21,16 @@ Source0:	http://rubyforge.org/frs/download.php/36331/qt4-qtruby-%{version}.tgz
 Patch0:		%{name}-qtruby-debian.patch
 Patch1:		%{name}-qtruby-lib64.patch
 URL:		http://rubyforge.org/projects/korundum/
-BuildRequires:	cmake >= 2.6.0
+BuildRequires:	QtCore-devel >= 4.4.3
+BuildRequires:	QtDBus-devel >= 4.4.3
+BuildRequires:	QtGui-devel >= 4.4.3
+BuildRequires:	QtNetwork-devel >= 4.4.3
+BuildRequires:	QtUiTools-devel >= 4.4.3
+BuildRequires:	QtWebKit-devel >= 4.4.3
+BuildRequires:	QtXml-devel >= 4.4.3
+BuildRequires:	cmake >= 2.6.2
 BuildRequires:	qscintilla2-devel
-BuildRequires:	qt4-qmake
+BuildRequires:	qt4-qmake >= 4.4.3
 BuildRequires:	rpmbuild(macros) >= 1.277
 BuildRequires:	ruby-devel
 BuildConflicts:	qwt-devel
