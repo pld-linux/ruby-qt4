@@ -92,17 +92,62 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_bindir}/rbqtapi
 %attr(755,root,root) %{_bindir}/rbrcc
 %attr(755,root,root) %{_bindir}/rbuic4
-%attr(755,root,root) %ghost %{_libdir}/libsmokeqt.so.?
-%attr(755,root,root) %{_libdir}/libsmokeqt.so.*.*.*
-%{ruby_rubylibdir}/Qt.rb
-%dir %{ruby_rubylibdir}/Qt
-%{ruby_rubylibdir}/Qt/active_item_model.rb
-%{ruby_rubylibdir}/Qt/active_table_model.rb
-%{ruby_rubylibdir}/Qt/qtruby4.rb
-%{ruby_rubylibdir}/Qt3.rb
-%{ruby_rubylibdir}/Qt4.rb
-%attr(755,root,root) %{ruby_archdir}/qtruby4.so
+%attr(755,root,root) %{_bindir}/smokeapi
+%attr(755,root,root) %{_bindir}/smokegen
+%attr(755,root,root) %{_libdir}/libcppparser.so
+%attr(755,root,root) %ghost %{_libdir}/libqtruby4shared.so.?
+%attr(755,root,root) %{_libdir}/libqtruby4shared.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokebase.so.?
+%attr(755,root,root) %{_libdir}/libsmokebase.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtcore.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtcore.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtdbus.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtdbus.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtgui.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtgui.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtnetwork.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtnetwork.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtopengl.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtopengl.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtscript.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtscript.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtsql.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtsql.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtsvg.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtsvg.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqttest.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqttest.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtuitools.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtuitools.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtwebkit.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtwebkit.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtxml.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtxml.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsmokeqtxmlpatterns.so.?
+%attr(755,root,root) %{_libdir}/libsmokeqtxmlpatterns.so.*.*.*
+%attr(755,root,root) %{_libdir}/smokegen/generator_dump.so
+%attr(755,root,root) %{_libdir}/smokegen/generator_smoke.so
+%{_datadir}/smokegen
+%{_libdir}/ruby/site_ruby/1.8/*
 
 %files devel
 %defattr(644,root,root,755)
-%attr(755,root,root) %{_libdir}/libsmokeqt.so
+%attr(755,root,root) %{_libdir}/libqtruby4shared.so
+%attr(755,root,root) %{_libdir}/libsmokebase.so
+%attr(755,root,root) %{_libdir}/libsmokeqtcore.so
+%attr(755,root,root) %{_libdir}/libsmokeqtdbus.so
+%attr(755,root,root) %{_libdir}/libsmokeqtgui.so
+%attr(755,root,root) %{_libdir}/libsmokeqtnetwork.so
+%attr(755,root,root) %{_libdir}/libsmokeqtopengl.so
+%attr(755,root,root) %{_libdir}/libsmokeqtscript.so
+%attr(755,root,root) %{_libdir}/libsmokeqtsql.so
+%attr(755,root,root) %{_libdir}/libsmokeqtsvg.so
+%attr(755,root,root) %{_libdir}/libsmokeqttest.so
+%attr(755,root,root) %{_libdir}/libsmokeqtuitools.so
+%attr(755,root,root) %{_libdir}/libsmokeqtwebkit.so
+%attr(755,root,root) %{_libdir}/libsmokeqtxml.so
+%attr(755,root,root) %{_libdir}/libsmokeqtxmlpatterns.so
+%{_includedir}/smoke.h
+%{_includedir}/smoke
+%{_includedir}/smokegen
+%{_includedir}/qtruby
