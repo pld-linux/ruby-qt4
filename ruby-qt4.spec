@@ -57,8 +57,8 @@ Pliki nagĹ~BĂłwkowe dowiązań ruby dla Qt4 GUI.
 
 %prep
 %setup -q -n %{origname}-%{version}
-%patch0 -p1
-%patch1 -p1
+#%patch0 -p1
+#%patch1 -p1
 
 %build
 install -d build
@@ -72,7 +72,7 @@ cd build
 %endif
 	../
 
-%{__make}
+%{__make} -j1
 
 %install
 rm -rf $RPM_BUILD_ROOT
