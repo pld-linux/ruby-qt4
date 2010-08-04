@@ -13,7 +13,7 @@ Summary:	Ruby bindings for the Qt4 GUI library
 Summary(pl.UTF-8):	Dowiązania ruby dla biblioteki Qt4 GUI
 Name:		ruby-qt4
 Version:	2.1.0
-Release:	2
+Release:	3
 License:	GPL v2
 Group:		Development/Languages
 Source0:	http://rubyforge.org/frs/download.php/71843/%{origname}-%{version}.tar.gz
@@ -125,7 +125,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/smokegen/generator_dump.so
 %attr(755,root,root) %{_libdir}/smokegen/generator_smoke.so
 %{_datadir}/smokegen
-%{_libdir}/ruby/site_ruby/1.8/*
+%{_libdir}/ruby/site_ruby/*.*/*
 
 %files devel
 %defattr(644,root,root,755)
