@@ -6,31 +6,31 @@
 #   EXECUTE_PROCESS(COMMAND ${RUBY_EXECUTABLE} -r vendor-specific -e "print 'true'"
 # - fix qwt issue
 #
-%define		_pnam	qt4-qtruby
-%define		qtver	4.4.3
+%define		origname	qt4-qtruby
+%define		qtver		4.6.3
 
 Summary:	Ruby bindings for the Qt4 GUI library
 Summary(pl.UTF-8):	Dowiązania ruby dla biblioteki Qt4 GUI
 Name:		ruby-qt4
-Version:	1.4.10
-Release:	6
+Version:	2.1.0
+Release:	0.1
 License:	GPL v2
 Group:		Development/Languages
-Source0:	http://rubyforge.org/frs/download.php/36331/qt4-qtruby-%{version}.tgz
-# Source0-md5:	3bbc8f869ad50123e61e493795dab38a
+Source0:	http://rubyforge.org/frs/download.php/71843/%{origname}-%{version}.tar.gz
+# Source0-md5:	b1720fd928a6de35b543c6e83d5f1fe0
 Patch0:		%{name}-qtruby-debian.patch
 Patch1:		%{name}-qtruby-lib64.patch
 URL:		http://rubyforge.org/projects/korundum/
-BuildRequires:	QtCore-devel >= 4.4.3
-BuildRequires:	QtDBus-devel >= 4.4.3
-BuildRequires:	QtGui-devel >= 4.4.3
-BuildRequires:	QtNetwork-devel >= 4.4.3
-BuildRequires:	QtUiTools-devel >= 4.4.3
-BuildRequires:	QtWebKit-devel >= 4.4.3
-BuildRequires:	QtXml-devel >= 4.4.3
-BuildRequires:	cmake >= 2.6.2
+BuildRequires:	QtCore-devel >= %{qtver}
+BuildRequires:	QtDBus-devel >= %{qtver}
+BuildRequires:	QtGui-devel >= %{qtver}
+BuildRequires:	QtNetwork-devel >= %{qtver}
+BuildRequires:	QtUiTools-devel >= %{qtver}
+BuildRequires:	QtWebKit-devel >= %{qtver}
+BuildRequires:	QtXml-devel >= %{qtver}
+BuildRequires:	cmake >= 2.8.0
 BuildRequires:	qscintilla2-devel
-BuildRequires:	qt4-qmake >= 4.4.3
+BuildRequires:	qt4-qmake >= %{qtver}
 BuildRequires:	rpmbuild(macros) >= 1.277
 BuildRequires:	ruby-devel
 BuildConflicts:	qwt-devel
@@ -56,7 +56,7 @@ Ruby bindings development files for Qt4 GUI.
 Pliki nagĹ~BĂłwkowe dowiązań ruby dla Qt4 GUI.
 
 %prep
-%setup -q -n qt4-qtruby-%{version}
+%setup -q -n %{origname}-%{version}
 %patch0 -p1
 %patch1 -p1
 
