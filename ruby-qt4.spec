@@ -18,8 +18,6 @@ License:	GPL v2
 Group:		Development/Languages
 Source0:	http://rubyforge.org/frs/download.php/71843/%{origname}-%{version}.tar.gz
 # Source0-md5:	b1720fd928a6de35b543c6e83d5f1fe0
-Patch0:		%{name}-qtruby-debian.patch
-Patch1:		%{name}-qtruby-lib64.patch
 URL:		http://rubyforge.org/projects/korundum/
 BuildRequires:	QtCore-devel >= %{qtver}
 BuildRequires:	QtDBus-devel >= %{qtver}
@@ -57,8 +55,6 @@ Pliki nagĹ~BĂłwkowe dowiązań ruby dla Qt4 GUI.
 
 %prep
 %setup -q -n %{origname}-%{version}
-#%patch0 -p1
-#%patch1 -p1
 
 %build
 install -d build
