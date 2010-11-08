@@ -10,7 +10,7 @@ Summary:	Ruby bindings for the Qt4 GUI library
 Summary(pl.UTF-8):	Dowiązania ruby dla biblioteki Qt4 GUI
 Name:		ruby-qt4
 Version:	2.1.0
-Release:	4
+Release:	5
 License:	GPL v2
 Group:		Development/Languages
 Source0:	http://rubyforge.org/frs/download.php/71843/%{origname}-%{version}.tar.gz
