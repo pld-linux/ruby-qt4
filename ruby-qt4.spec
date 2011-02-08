@@ -23,8 +23,10 @@ BuildRequires:	QtNetwork-devel >= %{qtver}
 BuildRequires:	QtUiTools-devel >= %{qtver}
 BuildRequires:	QtWebKit-devel >= %{qtver}
 BuildRequires:	QtXml-devel >= %{qtver}
+BuildRequires:	automoc4
 BuildRequires:	cmake >= 2.8.0
 BuildRequires:	qscintilla2-devel
+BuildRequires:	qt4-build
 BuildRequires:	qt4-qmake >= %{qtver}
 BuildRequires:	rpmbuild(macros) >= 1.277
 BuildRequires:	ruby-devel
