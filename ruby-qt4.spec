@@ -10,7 +10,7 @@ Summary:	Ruby bindings for the Qt4 GUI library
 Summary(pl.UTF-8):	Dowiązania ruby dla biblioteki Qt4 GUI
 Name:		ruby-qt4
 Version:	2.1.0
-Release:	5
+Release:	6
 License:	GPL v2
 Group:		Development/Languages
 Source0:	http://rubyforge.org/frs/download.php/71843/%{origname}-%{version}.tar.gz
@@ -62,6 +62,8 @@ cd build
 	-DCMAKE_INSTALL_PREFIX="%{_prefix}" \
 	-DRUBY_EXECUTABLE="%{__ruby}" \
 	-DCMAKE_VERBOSE_MAKEFILE=1 \
+	-DCUSTOM_RUBY_SITE_ARCH_DIR="%{ruby_vendorarchdir}" \
+	-DCUSTOM_RUBY_SITE_LIB_DIR="%{ruby_vendorlibdir}" \
 %if "%{_lib}" == "lib64"
 	-DLIB_SUFFIX=64 \
 %endif
@@ -125,26 +127,26 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/smokegen/generator_smoke.so
 %{_datadir}/smokegen
 
-%{ruby_sitelibdir}/Qt.rb
-%{ruby_sitelibdir}/Qt3.rb
-%{ruby_sitelibdir}/Qt4.rb
-%attr(755,root,root) %{ruby_sitearchdir}/qtruby4.so
-%attr(755,root,root) %{ruby_sitearchdir}/qtscript.so
-%attr(755,root,root) %{ruby_sitearchdir}/qttest.so
-%attr(755,root,root) %{ruby_sitearchdir}/qtuitools.so
-%attr(755,root,root) %{ruby_sitearchdir}/qtwebkit.so
-%dir %{ruby_sitelibdir}/Qt
-%{ruby_sitelibdir}/Qt/active_item_model.rb
-%{ruby_sitelibdir}/Qt/active_table_model.rb
-%{ruby_sitelibdir}/Qt/qtruby4.rb
-%dir %{ruby_sitelibdir}/qtscript
-%{ruby_sitelibdir}/qtscript/qtscript.rb
-%dir %{ruby_sitelibdir}/qttest
-%{ruby_sitelibdir}/qttest/qttest.rb
-%dir %{ruby_sitelibdir}/qtuitools
-%{ruby_sitelibdir}/qtuitools/qtuitools.rb
-%dir %{ruby_sitelibdir}/qtwebkit
-%{ruby_sitelibdir}/qtwebkit/qtwebkit.rb
+%{ruby_vendorlibdir}/Qt.rb
+%{ruby_vendorlibdir}/Qt3.rb
+%{ruby_vendorlibdir}/Qt4.rb
+%attr(755,root,root) %{ruby_vendorarchdir}/qtruby4.so
+%attr(755,root,root) %{ruby_vendorarchdir}/qtscript.so
+%attr(755,root,root) %{ruby_vendorarchdir}/qttest.so
+%attr(755,root,root) %{ruby_vendorarchdir}/qtuitools.so
+%attr(755,root,root) %{ruby_vendorarchdir}/qtwebkit.so
+%dir %{ruby_vendorlibdir}/Qt
+%{ruby_vendorlibdir}/Qt/active_item_model.rb
+%{ruby_vendorlibdir}/Qt/active_table_model.rb
+%{ruby_vendorlibdir}/Qt/qtruby4.rb
+%dir %{ruby_vendorlibdir}/qtscript
+%{ruby_vendorlibdir}/qtscript/qtscript.rb
+%dir %{ruby_vendorlibdir}/qttest
+%{ruby_vendorlibdir}/qttest/qttest.rb
+%dir %{ruby_vendorlibdir}/qtuitools
+%{ruby_vendorlibdir}/qtuitools/qtuitools.rb
+%dir %{ruby_vendorlibdir}/qtwebkit
+%{ruby_vendorlibdir}/qtwebkit/qtwebkit.rb
 
 %files devel
 %defattr(644,root,root,755)
